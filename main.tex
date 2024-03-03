@@ -1,0 +1,632 @@
+\documentclass[article]{jss}
+%% -- LaTeX packages and custom commands ---------------------------------------
+
+%% recommended packages
+\usepackage{orcidlink,thumbpdf,lmodern}
+
+%% another package (only for this demo article)
+\usepackage{framed}
+\usepackage{natbib}
+
+%% new custom commands
+\newcommand{\class}[1]{`\code{#1}'}
+\newcommand{\fct}[1]{\code{#1()}}
+
+%% For Sweave-based articles about R packages:
+%% need no \usepackage{Sweave}
+
+
+%% -- Article metainformation (author, title, ...) -----------------------------
+
+%% - \author{} with primary affiliation (and optionally ORCID link)
+%% - \Plainauthor{} without affiliations
+%% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
+%% - \AND starts a new line, \And does not.
+
+\author{Flavio Gioia~\orcidlink{0009-0000-0326-3840}\\Libera Università Maria Santissima Assunta}
+
+\Volume{50}
+\Issue{7}
+\Month{June}
+\Year{2012}
+\Submitdate{2012-06-04}
+
+\title{cmahalanobis: A \proglang{R} Package for Computing Mahalanobis Distance Between Factors}
+\Plaintitle{cmahalanobis: A R Package for Computing Mahalanobis Distance Between Factors}
+\Shorttitle{cmahalanobis: A \proglang{R} Package for Computing Mahalanobis Distance}
+
+\Abstract{
+Mahalanobis distance is a measure of dissimilarity between two vectors of multivariate random variables, based on the covariance matrix. This distance is useful for statistical matching or statistical fusion of data, as well as for detecting differences between factors. In this paper, we present the \proglang{cmahalanobis} package, a \proglang{R} package that provides a function to compute the Mahalanobis distance between every pair of species in a list of data frames. Each data frame contains the observations of a species with some variables. The \proglang{cmahalanobis} package is based on the formula of the Mahalanobis distance and exploits the base functions of \proglang{R} for matrix computation. The \proglang{cmahalanobis} package offers several options for handling missing data, standardizing variables, and selecting relevant variables. The \proglang{cmahalanobis} package differs from other similar packages for its simplicity, flexibility, and speed. We show some applications of the \proglang{cmahalanobis} package with real data sets embedded in \proglang{R}, such as mtcars and iris, and with the BFI dataset \cite{bfi}, which contains 2800 observations and 25 personality items representing five factors that are: Agreeableness, Conscientiousness, Extraversion, Neuroticism, and Opennness. We illustrate the results with graphs and tables. We conclude that the \proglang{cmahalanobis} package is an effective and practical tool for computing the Mahalanobis distance, and we suggest some possible extensions or improvements for the future of the package.
+}
+
+
+%% - \Keywords{} with LaTeX markup, at least one required
+%% - \Plainkeywords{} without LaTeX markup (if necessary)
+%% - Should be comma-separated and in sentence case.
+\Keywords{JSS, Mahalanobis, Mahalanobis distance, cmahalanobis, \proglang{R}}
+\Plainkeywords{JSS, Mahalanobis, Mahalanobis distance, cmahalanobis, R}
+
+%% - \Address{} of at least one author
+%% - May contain multiple affiliations for each author
+%%   (in extra lines, separated by \emph{and}\\).
+%% - May contain multiple authors for the same affiliation
+%%   (in the same first line, separated by comma).
+\Address{
+  Flavio Gioia\\
+  Libera Università Maria Santissima Assunta\\
+  \emph{and}\\
+  Dipartment of jurisprudence, economics, politics and modern languages\\
+  Computer science techniques for data managing\\
+  Via Pompeo Magno ~28, Roma, Italia\\
+  E-mail: \email{flaviogioia.fg@gmail.com}\\
+  URL: \url{https://orcid.org/my-orcid?orcid=0009-0000-0326-3840}
+}
+
+
+\begin{document}
+
+
+
+%% -- Introduction -------------------------------------------------------------
+
+%% - In principle "as usual".
+%% - But should typically have some discussion of both _software_ and _methods_.
+%% - Use \proglang{}, \pkg{}, and \code{} markup throughout the manuscript.
+%% - If such markup is in (sub)section titles, a plain text version has to be
+%%   added as well.
+%% - All software mentioned should be properly \cite-d.
+%% - All abbreviations should be introduced.
+%% - Unless the expansions of abbreviations are proper names (like "Journal
+%%   of Statistical Software" above) they should be in sentence case (like
+%%   "generalized linear models" below).
+
+\section[Introduction: Challenges of Mahalanobis distance]{Challenges of Mahalanobis distance} \label{sec:intro}
+
+Statistical matching or statistical fusion of data is a technique widely used in various fields, such as impact evaluation, public policy analysis, market research, biostatistics \cite{rao2015handbook}, and others. This technique consists of integrating two data sources that refer to the same target population and that share some variables, but not all. The aim is to obtain a synthetic data set that contains all the variables of interest from both sources, and that preserves the statistical properties of the original data \cite{d2018statistical}.
+
+One of the key steps in statistical matching or statistical fusion of data is to measure the similarity or dissimilarity between the units of the two data sources, based on the common variables. A common measure of dissimilarity is the Mahalanobis distance, which is a measure of dissimilarity between two vectors of multivariate random variables, based on the covariance matrix. This distance takes into account the correlation between the variables, and gives more weight to the variables that have more variance \cite{mahalanobis1936generalized}.
+
+However, calculating the Mahalanobis distance requires some complex mathematical operations, such as inverting the covariance matrix, which can be difficult to implement and computationally expensive, especially when working with large data or many variables. Furthermore, the calculation of the Mahalanobis distance can be affected by problems such as missing data, non-normality of variables, or multicollinearity. These problems can lead to inaccurate or unreliable results, and require appropriate methods to handle them \cite{de2016mahalanobis}.
+
+In this paper, we present the \proglang{cmahalanobis} package, a \proglang{R} package that provides a function to compute the Mahalanobis distance between every pair of species in a list of data frames. Each data frame contains the observations of a species with some variables. The \proglang{cmahalanobis} package is based on the formula of the Mahalanobis distance and exploits the base functions of \proglang{R} for matrix computation. The \proglang{cmahalanobis} package offers several options for handling missing data, standardizing variables, and selecting relevant variables. The \proglang{cmahalanobis} package differs from other similar packages for its simplicity, flexibility, and speed.
+
+We provide an effective and practical tool for calculating the Mahalanobis distance, and we show some applications in real and simulated cases, using the BFI dataset \cite{bfi}, which contains 25 personality items representing five factors. We illustrate the results with graphs and tables, and we comment on the implications and limitations of our approach. We conclude that the \proglang{cmahalanobis} package is a useful and valuable resource for statistical matching or statistical fusion of data, and we propose some possible extensions or improvements for the future of the package, such as the implementation of robust or parallel methods.
+
+The paper is organized as follows. In section 2, we describe the theory and formula of the Mahalanobis distance. In section 3, we explain the main features and options of our package, and how it differs from other similar packages. In section 4, we show some applications of our package in real and simulated cases, and illustrate the results with graphs and tables. In Section 5, we summarize the main points of our paper, the conclusions and recommendations derived from it, and possible future extensions or improvements of our package.
+
+The \proglang{cmahalanobis} package is available from the CRAN: \url{https://cran.r-project.org/web/packages/cmahalanobis/index.html}.
+
+
+%% -- Manuscript ---------------------------------------------------------------
+
+%% - In principle "as usual" again.
+%% - When using equations (e.g., {equation}, {eqnarray}, {align}, etc.
+%%   avoid empty lines before and after the equation (which would signal a new
+%%   paragraph.
+%% - When describing longer chunks of code that are _not_ meant for execution
+%%   (e.g., a function synopsis or list of arguments), the environment {Code}
+%%   is recommended. Alternatively, a plain {verbatim} can also be used.
+%%   (For executed code see the next section.)
+
+\section{Theory of Mahalanobis distance} \label{sec:models}
+
+Formally, the Mahalanobis distance of a multivariate vector from a group of values with mean and covariance matrix is defined as: \cite{mahalanobis1936generalized}
+%
+\begin{equation} \label{eq:mean}
+D_M(\mathbf{x})=\sqrt{(\mathbf{x}-\boldsymbol{\mu})^T\Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})}
+\end{equation}
+%
+
+The Mahalanobis distance (or generalized squared interpoint distance) can also be defined as a measure of dissimilarity between two random vectors and with the same probability density function and with covariance matrix : \cite{de2016mahalanobis}
+
+\begin{equation} \label{eq:mean}
+D_M(\mathbf{x},\mathbf{y})=\sqrt{(\mathbf{x}-\mathbf{y})^T\Sigma^{-1}(\mathbf{x}-\mathbf{y})}
+\end{equation}
+
+The Mahalanobis distance has some properties and advantages, such as:
+\begin{itemize}
+- It is invariant under linear transformations of the data, meaning that the distance between two points does not change if the data are scaled, rotated, or translated.
+\end{itemize}
+\begin{itemize}
+- It reduces to the Euclidean distance when the covariance matrix is the identity matrix, meaning that the variables are uncorrelated and have unit variance.
+\end{itemize}
+\begin{itemize}
+- It reduces to the standardized Euclidean distance when the covariance matrix is diagonal, meaning that the variables are uncorrelated but have different variances.
+\end{itemize}
+\begin{itemize}
+- It can be used to define an ellipsoid of concentration, which is an ellipsoid centered on the mean of the data and having as axes the principal axes of the data. The ellipsoid of concentration represents the region where most of the data points are located, and can be used to identify outliers or clusters.
+\end{itemize}
+
+In this paper, we implement the Mahalanobis distance in our package, using the \pkg{stats} \cite{statspackage} functions of R for matrix computation. Our main function, cmahalanobis(), takes as input a list of data frames, each containing the observations of a species with some variables, and returns a matrix with the Mahalanobis distances between every pair of data frames in the list.
+
+\section{Application of cmahalanobis}
+
+Firstly, we have to download the \pkg{cmahalanobis} package from the CRAN with the following code:
+\begin{CodeChunk}
+\begin{CodeInput}
+install.packages("cmahalanobis")
+\end{CodeInput}
+\end{CodeChunk}
+
+\subsection{Application of cmahalanobis to the iris dataset}\label{Application of cmahalanobis to the iris dataset}
+
+Once the download is successfully done, we can apply our function to the \proglang{iris} dataset, which is a built-in dataset in \proglang{R}. The \proglang{iris} dataset contains 150 observations of three species of iris flowers (setosa, versicolor, and virginica), with four variables: sepal length, sepal width, petal length, and petal width.
+Before we can use our function, we have to create a list of data frames for each species, with the following code:
+\begin{CodeChunk}
+\begin{CodeInput}
+iris_list <- split(iris, iris$Species)
+\end{CodeInput}
+\end{CodeChunk}
+This code splits the \proglang{iris} data frame into three data frames, one for each species, and stores them in a list called \code{iris_list}. We can print the \code{iris_list} to see its structure and content:
+\begin{CodeChunk}
+\begin{CodeInput}
+print(iris_list)
+\end{CodeInput}
+\end{CodeChunk}
+And output is:
+\begin{Code}
+$setosa
+   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+1           5.1         3.5          1.4         0.2  setosa
+2           4.9         3.0          1.4         0.2  setosa
+3           4.7         3.2          1.3         0.2  setosa
+4           4.6         3.1          1.5         0.2  setosa
+5           5.0         3.6          1.4         0.2  setosa
+6           5.4         3.9          1.7         0.4  setosa
+7           4.6         3.4          1.4         0.3  setosa
+8           5.0         3.4          1.5         0.2  setosa
+9           4.4         2.9          1.4         0.2  setosa
+10          4.9         3.1          1.5         0.1  setosa
+11          5.4         3.7          1.5         0.2  setosa
+12          4.8         3.4          1.6         0.2  setosa
+13          4.8         3.0          1.4         0.1  setosa
+14          4.3         3.0          1.1         0.1  setosa
+15          5.8         4.0          1.2         0.2  setosa
+16          5.7         4.4          1.5         0.4  setosa
+17          5.4         3.9          1.3         0.4  setosa
+18          5.1         3.5          1.4         0.3  setosa
+19          5.7         3.8          1.7         0.3  setosa
+20          5.1         3.8          1.5         0.3  setosa
+21          5.4         3.4          1.7         0.2  setosa
+22          5.1         3.7          1.5         0.4  setosa
+23          4.6         3.6          1.0         0.2  setosa
+24          5.1         3.3          1.7         0.5  setosa
+25          4.8         3.4          1.9         0.2  setosa
+26          5.0         3.0          1.6         0.2  setosa
+27          5.0         3.4          1.6         0.4  setosa
+28          5.2         3.5          1.5         0.2  setosa
+29          5.2         3.4          1.4         0.2  setosa
+30          4.7         3.2          1.6         0.2  setosa
+31          4.8         3.1          1.6         0.2  setosa
+32          5.4         3.4          1.5         0.4  setosa
+33          5.2         4.1          1.5         0.1  setosa
+34          5.5         4.2          1.4         0.2  setosa
+35          4.9         3.1          1.5         0.2  setosa
+36          5.0         3.2          1.2         0.2  setosa
+37          5.5         3.5          1.3         0.2  setosa
+38          4.9         3.6          1.4         0.1  setosa
+39          4.4         3.0          1.3         0.2  setosa
+40          5.1         3.4          1.5         0.2  setosa
+41          5.0         3.5          1.3         0.3  setosa
+42          4.5         2.3          1.3         0.3  setosa
+43          4.4         3.2          1.3         0.2  setosa
+44          5.0         3.5          1.6         0.6  setosa
+45          5.1         3.8          1.9         0.4  setosa
+46          4.8         3.0          1.4         0.3  setosa
+47          5.1         3.8          1.6         0.2  setosa
+48          4.6         3.2          1.4         0.2  setosa
+49          5.3         3.7          1.5         0.2  setosa
+50          5.0         3.3          1.4         0.2  setosa
+
+$versicolor
+    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species
+51           7.0         3.2          4.7         1.4 versicolor
+52           6.4         3.2          4.5         1.5 versicolor
+53           6.9         3.1          4.9         1.5 versicolor
+54           5.5         2.3          4.0         1.3 versicolor
+55           6.5         2.8          4.6         1.5 versicolor
+56           5.7         2.8          4.5         1.3 versicolor
+57           6.3         3.3          4.7         1.6 versicolor
+58           4.9         2.4          3.3         1.0 versicolor
+59           6.6         2.9          4.6         1.3 versicolor
+60           5.2         2.7          3.9         1.4 versicolor
+61           5.0         2.0          3.5         1.0 versicolor
+62           5.9         3.0          4.2         1.5 versicolor
+63           6.0         2.2          4.0         1.0 versicolor
+64           6.1         2.9          4.7         1.4 versicolor
+65           5.6         2.9          3.6         1.3 versicolor
+66           6.7         3.1          4.4         1.4 versicolor
+67           5.6         3.0          4.5         1.5 versicolor
+68           5.8         2.7          4.1         1.0 versicolor
+69           6.2         2.2          4.5         1.5 versicolor
+70           5.6         2.5          3.9         1.1 versicolor
+71           5.9         3.2          4.8         1.8 versicolor
+72           6.1         2.8          4.0         1.3 versicolor
+73           6.3         2.5          4.9         1.5 versicolor
+74           6.1         2.8          4.7         1.2 versicolor
+75           6.4         2.9          4.3         1.3 versicolor
+76           6.6         3.0          4.4         1.4 versicolor
+77           6.8         2.8          4.8         1.4 versicolor
+78           6.7         3.0          5.0         1.7 versicolor
+79           6.0         2.9          4.5         1.5 versicolor
+80           5.7         2.6          3.5         1.0 versicolor
+81           5.5         2.4          3.8         1.1 versicolor
+82           5.5         2.4          3.7         1.0 versicolor
+83           5.8         2.7          3.9         1.2 versicolor
+84           6.0         2.7          5.1         1.6 versicolor
+85           5.4         3.0          4.5         1.5 versicolor
+86           6.0         3.4          4.5         1.6 versicolor
+87           6.7         3.1          4.7         1.5 versicolor
+88           6.3         2.3          4.4         1.3 versicolor
+89           5.6         3.0          4.1         1.3 versicolor
+90           5.5         2.5          4.0         1.3 versicolor
+91           5.5         2.6          4.4         1.2 versicolor
+92           6.1         3.0          4.6         1.4 versicolor
+93           5.8         2.6          4.0         1.2 versicolor
+94           5.0         2.3          3.3         1.0 versicolor
+95           5.6         2.7          4.2         1.3 versicolor
+96           5.7         3.0          4.2         1.2 versicolor
+97           5.7         2.9          4.2         1.3 versicolor
+98           6.2         2.9          4.3         1.3 versicolor
+99           5.1         2.5          3.0         1.1 versicolor
+100          5.7         2.8          4.1         1.3 versicolor
+
+$virginica
+    Sepal.Length Sepal.Width Petal.Length Petal.Width   Species
+101          6.3         3.3          6.0         2.5 virginica
+102          5.8         2.7          5.1         1.9 virginica
+103          7.1         3.0          5.9         2.1 virginica
+104          6.3         2.9          5.6         1.8 virginica
+105          6.5         3.0          5.8         2.2 virginica
+106          7.6         3.0          6.6         2.1 virginica
+107          4.9         2.5          4.5         1.7 virginica
+108          7.3         2.9          6.3         1.8 virginica
+109          6.7         2.5          5.8         1.8 virginica
+110          7.2         3.6          6.1         2.5 virginica
+111          6.5         3.2          5.1         2.0 virginica
+112          6.4         2.7          5.3         1.9 virginica
+113          6.8         3.0          5.5         2.1 virginica
+114          5.7         2.5          5.0         2.0 virginica
+115          5.8         2.8          5.1         2.4 virginica
+116          6.4         3.2          5.3         2.3 virginica
+117          6.5         3.0          5.5         1.8 virginica
+118          7.7         3.8          6.7         2.2 virginica
+119          7.7         2.6          6.9         2.3 virginica
+120          6.0         2.2          5.0         1.5 virginica
+121          6.9         3.2          5.7         2.3 virginica
+122          5.6         2.8          4.9         2.0 virginica
+123          7.7         2.8          6.7         2.0 virginica
+124          6.3         2.7          4.9         1.8 virginica
+125          6.7         3.3          5.7         2.1 virginica
+126          7.2         3.2          6.0         1.8 virginica
+127          6.2         2.8          4.8         1.8 virginica
+128          6.1         3.0          4.9         1.8 virginica
+129          6.4         2.8          5.6         2.1 virginica
+130          7.2         3.0          5.8         1.6 virginica
+131          7.4         2.8          6.1         1.9 virginica
+132          7.9         3.8          6.4         2.0 virginica
+133          6.4         2.8          5.6         2.2 virginica
+134          6.3         2.8          5.1         1.5 virginica
+135          6.1         2.6          5.6         1.4 virginica
+136          7.7         3.0          6.1         2.3 virginica
+137          6.3         3.4          5.6         2.4 virginica
+138          6.4         3.1          5.5         1.8 virginica
+139          6.0         3.0          4.8         1.8 virginica
+140          6.9         3.1          5.4         2.1 virginica
+141          6.7         3.1          5.6         2.4 virginica
+142          6.9         3.1          5.1         2.3 virginica
+143          5.8         2.7          5.1         1.9 virginica
+144          6.8         3.2          5.9         2.3 virginica
+145          6.7         3.3          5.7         2.5 virginica
+146          6.7         3.0          5.2         2.3 virginica
+147          6.3         2.5          5.0         1.9 virginica
+148          6.5         3.0          5.2         2.0 virginica
+149          6.2         3.4          5.4         2.3 virginica
+150          5.9         3.0          5.1         1.8 virginica
+\end{Code}
+
+Now that we have created our list of data-frames, we can apply the function \pkg{cmahalanobis()}. 
+\begin{CodeChunk}
+\begin{CodeInput}
+res <- cmahalanobis(iris_list)
+\end{CodeInput}
+\end{CodeChunk}
+Then we use:
+\begin{CodeChunk}
+\begin{CodeInput}
+print(res)
+\end{CodeInput}
+\end{CodeChunk}
+And the output is:
+\begin{Code}
+         [,1]      [,2]      [,3]
+[1,]   3.9200 335.19989 727.42056
+[2,] 107.1736   3.92000  26.71618
+[3,] 171.7689  16.88654   3.92000
+\end{Code}
+
+This code show us Mahalanobis distance between each iris species present in iris data-frame: setosa, versicolor and virginica. Main diagonal of matrix show Mahalanobis distance between each species and itself, there is always 3.9. Other elements of matrix show us Mahalanobis distance between different species. For example: Mahalanobis distance between setosa and versicolor is 335.19989, instead between versicolor and virginica is 16.88654. This means that versicolor and virginica species are more similar between them compared to setosa, according to variables measured in iris data-frame.
+Mahalanobis distance is not symmetric, but it depends by the direction which we can measure distance between points, because Mahalanobis distance take into account of correlations of variables and ellipsoidal forms of points. If the clouds of points is ellipsoidal, the distance will be greater along the shorter axes and smaller on the longer axes. Thus, Mahalanobis distance between two points can change if we change point coordinates. 
+
+Now we can realize a plot using \pkg{ggplot2}:
+
+\begin{CodeChunk}
+\begin{CodeInput}
+# Load the ggplot2 package
+library(ggplot2)
+
+# Transform the output matrix into a data frame
+output_df <- as.data.frame(cmahalanobis(iris_list))
+
+# Add a column with the species names
+output_df$Species <- rownames(output_df)
+
+# Reshape the data frame from wide to long format
+output_df_long <- reshape2::melt(output_df, id.vars = "Species")
+
+# Rename the columns
+colnames(output_df_long) <- c("Species", "Comparison", "Distance")
+
+# Create a bar plot with ggplot2
+ggplot(output_df_long, aes(x = Species, y = Distance, fill = Comparison)) + 
+geom_bar(stat = "identity", position = "dodge") + 
+labs(title = "Mahalanobis distance between iris species", x = "Species", 
+y = "Distance", fill = "Comparison") + theme_minimal()
+\end{CodeInput}
+\end{CodeChunk}
+
+\begin{figure}
+    \center
+    \includegraphics[width=0.5\linewidth]{Rplot01.png}
+    \caption{Bar plot of Mahalanobis distance between iris species}
+    \label{fig:barplot}
+\end{figure}
+
+The figure \ref{fig:barplot} shows the same results as the matrix, but in a graphical way. We can see that the bars representing the Mahalanobis distance between the same species are 3.92000. For example, we can detect that the distance between setosa and versicolor is lower compared to distance between setosa and virginica on the side of 1, that is the perspective of setosa. Then in the side of 2, that is the perspective of versicolor, we can detect that the difference between itself is always 3.92000 and the difference between versicolor and setosa is higher compared to difference between versicolor and virginica. On the size of virginica, the higher distance is between setosa and virginica, between virginica and versicolor is less, and it is 3.92000 for itself.
+The Mahalanobis distance between a species and itself is always equal to a constant value, which depends on the covariance matrix of the data and the scale of the variables. This value does not have a direct interpretation, but only a relative one. It tells us that the Mahalanobis distance between a species and itself is the same for all species, but it doesn't tell us how different the species are from each other. To this scope, we need to look at the other values of the matrix or graph, which show the Mahalanobis distance between different species. This distance is not symmetrical, but depends on the direction in which the distance between two points is measured, because it takes into account the correlations between the variables and the ellipsoidal shape of the point cloud. If the point cloud is ellipsoidal, the Mahalanobis distance will be greater along the shorter axes of the ellipsoid and smaller along the longer axes. Thus, the Mahalanobis distance between two points can change if the coordinates of the points are exchanged.
+
+\subsection{Application of cmahalanobis to the mtcars dataset}\label{Application of cmahalanobis to the mtcars dataset}
+Now I'm going to apply the function cmahalanobis to the mtcars dataset using the variable \code{am}. Firstly, we have to split the data in 0, that is automatic transmission, and 1 that is manual transmission, so:
+\begin{CodeChunk}
+\begin{CodeInput}
+# Create a dataframe where only "am = 0" is present
+auto <- subset(mtcars, am == 0)
+
+# Remove the variable "am = 0"
+auto <- auto[,-9]
+
+# Create a dataframe where only "am = 1" is present
+manual <- subset(mtcars, am == 1)
+
+# Remove the variable "am = 1"
+manual <- manual[,-9]
+
+# Create a list with the two groups of cars
+groups <- list(auto, manual)
+\end{CodeInput}
+\end{CodeChunk}
+
+Inside the vector groups:
+\begin{CodeChunk}
+\begin{CodeInput}
+# Print groups
+print(groups)
+\end{CodeInput}
+\end{CodeChunk}
+
+there is:
+
+\begin{Code}
+[[1]]
+                     mpg cyl  disp  hp drat    wt  qsec vs gear carb
+Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1    3    1
+Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0    3    2
+Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1    3    1
+Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0    3    4
+Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1    4    2
+Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1    4    2
+Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1    4    4
+Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1    4    4
+Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0    3    3
+Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0    3    3
+Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0    3    3
+Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0    3    4
+Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0    3    4
+Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0    3    4
+Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1    3    1
+Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0    3    2
+AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0    3    2
+Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0    3    4
+Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0    3    2
+
+[[2]]
+                mpg cyl  disp  hp drat    wt  qsec vs gear carb
+Mazda RX4      21.0   6 160.0 110 3.90 2.620 16.46  0    4    4
+Mazda RX4 Wag  21.0   6 160.0 110 3.90 2.875 17.02  0    4    4
+Datsun 710     22.8   4 108.0  93 3.85 2.320 18.61  1    4    1
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.50  0    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.50  0    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.60  0    5    8
+Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1    4    2
+\end{Code}
+
+Finally we apply:
+\begin{CodeChunk}
+\begin{CodeInput}
+res <- cmahalanobis(groups)
+\end{CodeInput}
+\end{CodeChunk}
+
+And inside the vector \code{res} there is:
+\begin{Code}
+           [,1]       [,2]
+[1,]   9.473684 156.116255
+[2,] 735.591909   9.230769
+\end{Code}
+
+Then we can create a plot:
+\begin{CodeChunk}
+\begin{CodeInput}
+# Load ggplot2 package
+library(ggplot2)
+
+# Transform the output matrix in a data-frame
+output_df <- as.data.frame(cmahalanobis(groups))
+
+# Add a column with the names of typology of cars
+output_df$Type <- rownames(output_df)
+
+# Change the shape of the dataframe from large to long
+output_df_long <- reshape2::melt(output_df, id.vars = "Type")
+
+# Rename columns
+colnames(output_df_long) <- c("Type", "Comparision", "Distance")
+
+# Create the plot
+ggplot(output_df_long, aes(x = Type, y = Distance, 
+fill = Comparision)) + geom_bar(stat = "identity", position = "dodge") 
++ labs(title = "Mahalanobis distance between car typologies",
+x = "Typology", y = "Distance", fill = "Comparision") 
++ theme_minimal()
+\end{CodeInput}
+\end{CodeChunk}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{Rplot02.png}
+    \caption{Bar plot of Mahalanobis distance between car typologies}
+    \label{fig:barplot2}
+\end{figure}
+
+In Figure \ref{fig:barplot2} we can detect that the distance between each factor and itself is always 9.47. Then we observe that the distance between cars with \code{am = 0} and with cars with \code{am = 1} is 156, under the perspective of \code{am = 0}. Under perspective of \code{am = 1}, we can observe that distance between \code{am = 0} and \code{am = 1} is 735.591909, really high. So, cars with \code{am = 1} and with \code{am = 0} are really different considering other variables, that is:\code{mpg cyl disp hp drat wt qsec vs gear and carb} \cite{Mahalanobis1936, rdocumentation}.
+
+\subsection{Application of cmahalanobis to the BFI dataset}\label{Application of cmahalanobis to the BFI dataset}
+In this section we are going to apply \pkg{cmahalanobis} to the dataset \code{bfi}, having \code{gender} as a variable to analyse. This dataset is inside the package \pkg{psych}. There are several \code{NA} in that dataset, so we remove them: 
+\begin{CodeChunk}
+\begin{CodeInput}
+# Load package
+library(psych)
+
+# Remove NA in the dataset
+bfi <- na.omit(bfi)
+\end{CodeInput}
+\end{CodeChunk}
+
+
+In the dataset \code{BFI}, gender = 1 is referred at males, gender = 2 at females. Firstly, we create a list of dataframe, then we will apply \pkg{cmahalanobis} to the list of dataframes.
+\begin{CodeChunk}
+\begin{CodeInput}
+# Extract males by the dataset
+males <- subset(bfi, gender == "1") 
+
+# Remove males variable
+males <- males[,-27]
+
+# Extract females by the dataset
+females <- subset(bfi, gender == "2")
+
+# Remove females by the dataset
+females <- females[,-27]
+
+# Create a list of dataframes
+bfi_gender <- list(males, females)
+
+# Store into res the result of cmahalanobis
+res <- cmahalanobis(bfi_gender)
+
+# Print res
+res
+\end{CodeInput}
+\end{CodeChunk}
+
+May we remember that variables \code{"A1","A2","A3","A4","A5"} are \code{agree}; \code{"C1","C2","C3","C4","C5"} are \code{conscientious}; \code{"E1","E2","E3","E4","E5"} are \code{extraversion}; \code{"N1","N2","N3","N4","N5"} are \code{neuroticism}; \code{"O1","O2","O3","O4","O5"} are \code{openness}.
+The item data were collected using a 6 point response scale: 1 Very Inaccurate 2 Moderately Inaccurate 3 Slightly Inaccurate 4 Slightly Accurate 5 Moderately Accurate 6 Very Accurate.
+
+
+Now inside \code{res} we can find:
+\begin{Code}
+         [,1]     [,2]
+[1,] 27.96190 29.60269
+[2,] 31.06345 27.98135
+\end{Code}
+Now we create a plot:
+
+\begin{CodeChunk}
+\begin{CodeInput}
+# Load ggplot2 package
+library(ggplot2)
+
+# Transform the output matrix into a data frame
+output_df <- as.data.frame(cmahalanobis(bfi_gender))
+
+# Add a column with the gender names
+output_df$gender <- rownames(output_df)
+
+# Reshape the data frame from wide to long format
+output_df_long <- reshape2::melt(output_df, id.vars = "gender")
+
+# Rename the columns
+colnames(output_df_long) <- c("gender", "comparision", "distance")
+
+# Create a bar plot with ggplot2
+ggplot(output_df_long, aes(x = gender, y = distance, fill = comparision)) +
+geom_bar(stat = "identity", position = "dodge") + 
+labs(title = "Mahalanobis distance between gender",
+x = "Typology", y = "Distance", fill = "Comparision") + 
+theme_minimal() 
+\end{CodeInput}
+\end{CodeChunk}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{Rplot03.png}
+    \caption{Bar plot of Mahalanobis distance between gender}
+    \label{fig:barplot3}
+\end{figure}
+
+This output shows us the Mahalanobis distance between the two data groups: males and females, based on the variables of the bfi dataset, which are personality scores. The main diagonal of the matrix shows the Mahalanobis distance between the group and itself, which in this case is not the same for the two groups. This is because the Mahalanobis distance depends on the covariance matrix of the data, which in turn depends on the variability and correlation of the variables within each group. If the two groups have different variability or correlation between variables, their covariance matrix will be different, and therefore their Mahalanobis distance between the group and itself will also be different. In this case, we can see that the group of males has a lower Mahalanobis distance between the group and itself than the group of females, which means that the group of males has a lower variability or correlation between variables than to the female group. This could indicate that the male group is more homogeneous or less dispersed than the female group, depending on the variables in the bfi dataset. Under perspective of males, distance with the females is 29.60269, under perspective of females the distance is greater, that is 31.06345.
+
+%% -- Summary/conclusions/discussion -------------------------------------------
+
+\section{Summary and discussion} \label{sec:summary}
+
+In this work, I have presented my package \pkg{cmahalanobis}, which I created to calculate the Mahalanobis distance between two or more groups of multivariate data. The Mahalanobis distance is a measure of dissimilarity between two vectors of multivariate random variables, based on the covariance matrix. This distance is useful for matching or statistical data fusion, i.e., integrating two data sources that refer to the same target population and share some variables. My main goal was to compare the Mahalanobis distance between different types of data and explore patterns and relationships in the data.
+
+To create and use my package \pkg{cmahalanobis}, I used the programming language \proglang{R} and followed the guidelines for writing \proglang{R} packages provided by \cite{wickham2015}. I implemented my function \code{cmahalanobis}, which takes a list of data frames as input and returns a matrix with the Mahalanobis distances between the data frames. I also created documentation for my package using the \pkg{roxygen2} package and wrote this paper using the \pkg{rticles} package. To apply my function \code{cmahalanobis}, I used three datasets: \code{iris}, \code{mtcars}, and \code{bfi}. The \code{iris} dataset contains measurements of sepal and petal length and width for three species of iris. The \code{mtcars} dataset contains characteristics of 32 cars, including the type of transmission. The \code{bfi} dataset contains personality scores of 2800 subjects measured with 25 items representing 5 factors, and the gender of the subjects.
+
+My results show that the Mahalanobis distance between different types of data varies depending on the considered variables and the direction of comparison. For example, in the \code{iris} dataset, the Mahalanobis distance between iris species is greater along the shorter axes and smaller along the longer axes due to the ellipsoidal shape of the data. Additionally, the Mahalanobis distance between iris species is not symmetric but depends on the reference species. In the \code{mtcars} dataset, the Mahalanobis distance between cars with automatic and manual transmission is significantly different, indicating a strong dissimilarity between the two types of cars based on the other measured variables. In the \code{bfi} dataset, the Mahalanobis distance between males and females differs between the group and itself, indicating different variability or correlation between variables within each group. This might suggest that the male group is more homogeneous or less dispersed than the female group, based on the variables in the \code{bfi} dataset.
+
+My conclusions are that the Mahalanobis distance is a useful measure for matching or statistical data fusion because it accounts for variable correlations and ellipsoidal data shapes. However, the Mahalanobis distance also has limitations, such as its asymmetry, which depends on the direction in which we measure the distance between points, and the fact that it does not show the variability or distribution of the Mahalanobis distance or account for possible effects of outliers or multicollinearity. Furthermore, the Mahalanobis distance requires having two or more data sources that share some variables, and these variables should be continuous and normally distributed. These are challenges or difficulties I encountered in creating and using my \pkg{cmahalanobis} package. For the future, I could extend my package to include other functions or options, such as the ability to calculate the Mahalanobis distance with categorical or non-normal variables, or the ability to visualize the Mahalanobis distance with more informative or interactive plots. I could also apply my package to other datasets or problems, such as classification, clustering, or anomaly detection.
+
+
+%% -- Optional special unnumbered sections -------------------------------------
+\section*{Computational details}
+
+The results in this paper were obtained using: \pkg{ggplot2} \cite{ggplot2}, \pkg{cmahalanobis} \cite{cmahalanobis}, \pkg{reshape} \cite{reshape} and all packages used are available from the Comprehensive
+\proglang{R} Archive Network (CRAN) at
+\url{https://CRAN.R-project.org/}.
+
+
+
+%% -- Bibliography -------------------------------------------------------------
+%% - References need to be provided in a .bib BibTeX database.
+%% - All references should be made with \cite, \citet, \citep, \citealp etc.
+%%   (and never hard-coded). See the FAQ for details.
+%% - JSS-specific markup (\proglang, \pkg, \code) should be used in the .bib.
+%% - Titles in the .bib should be in title case.
+%% - DOIs should be included where available.
+
+\bibliography{refs}
+
+
+
+%% -----------------------------------------------------------------------------
+
+
+\end{document}
